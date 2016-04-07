@@ -21,7 +21,7 @@ die() {
 
 if [[ $# -lt 2 ]]; then
     #openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [Share serial #]
-    openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING]"
+    openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING] [Dex SN] Ex: ./setup.sh /home/edison/src/aps 123456 8 /dev/ttyMFD1 SM52087572 /"
 fi
 directory=`mkdir -p $1; cd $1; pwd`
 serial=$2
@@ -32,9 +32,9 @@ else
     max_iob=$3
 fi
 
-#if [[ $# -gt 3 ]]; then
-    #share_serial=$4
-#fi
+if [[ $# -gt 3 ]]; then
+    share_serial=$5
+fi
 if [[ $# -gt 3 ]]; then
     ttyport=$4
 fi
@@ -58,7 +58,7 @@ sudo cp ~/src/oref0/logrotate.rsyslog /etc/logrotate.d/rsyslog
 test -d /var/log/openaps || sudo mkdir /var/log/openaps && sudo chown $USER /var/log/openaps
 
 openaps vendor add openapscontrib.timezones
-#openaps vendor add openxshareble
+openaps vendor add openxshareble
 openaps vendor add mmeowlink.vendors.mmeowlink
 
 # don't re-create devices if they already exist
@@ -68,12 +68,12 @@ openaps device show 2>/dev/null > /tmp/openaps-devices
 grep -q pump.ini .gitignore 2>/dev/null || echo pump.ini >> .gitignore
 git add .gitignore
 #grep pump /tmp/openaps-devices || openaps device add pump medtronic $serial || die "Can't add pump"
-grep pump /tmp/openaps-devices || openaps device add pump mmeowlink subg_rfspy $ttyport $serial || die "Can't add pump"
-grep cgm /tmp/openaps-devices || openaps device add cgm dexcom || die "Can't add CGM"
+#grep pump /tmp/openaps-devices || openaps device add pump mmeowlink subg_rfspy $ttyport $serial || die "Can't add pump"
+#grep cgm /tmp/openaps-devices || openaps device add cgm dexcom || die "Can't add CGM"
 git add cgm.ini
-#grep share /tmp/openaps-devices || openaps device add share openxshareble || die "Can't add Share"
-#openaps use share configure --serial $share_serial
-#git add share.ini
+grep share /tmp/openaps-devices || openaps device add share openxshareble || die "Can't add Share"
+openaps use share configure --serial $share_serial
+git add share.ini
 #openaps device remove ns-glucose
 grep ns-glucose /tmp/openaps-devices || openaps device add ns-glucose process 'bash -c "curl -m 30 -s $NIGHTSCOUT_HOST/api/v1/entries/sgv.json?count=288 | json -e \"this.glucose = this.sgv\""' || die "Can't add ns-glucose"
 git add ns-glucose.ini
@@ -144,18 +144,18 @@ openaps alias show 2>/dev/null > /tmp/openaps-aliases
 # add aliases to get data
 openaps alias add invoke "report invoke" || die "Can't add invoke"
 #openaps alias add mmtune "! bash -c \"cd ~/src/minimed_rf/ && ruby -I lib bin/mmtune $ttyport $serial | egrep -v 'rssi:|OK|Ver|Open'\""
-openaps alias add mmtune "! bash -c \"cd ~/src/minimed_rf/ && ruby -I lib bin/mmtune $ttyport $serial >/dev/null\""
+openaps alias add mmtune "! bash -c \"cd ~/src/mmeowlink/mmeowlink/ && mmtune.py $ttyport $serial >/dev/null\""
 #openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo -n \"OK, temp duration check \" && cat monitor/temp_basal.json | json -c \"this.duration < 25\" | grep -q duration && echo OK || ( echo FAIL; sleep 120; exit 1 )"' || die "Can't add preflight"
-openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo OK || ( echo FAIL; sleep 120; exit 1 )"' || die "Can't add preflight"
+openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo "OK" $(date -u) || ( echo "FAIL" $(date -u); sleep 10; exit 1 )' || die "Can't add preflight"
 openaps alias add monitor-cgm "report invoke monitor/cgm-glucose.json" || die "Can't add monitor-cgm"
 #openaps alias add monitor-share "report invoke monitor/share-glucose.json" || die "Can't add monitor-share"
 openaps alias add get-ns-glucose "report invoke monitor/ns-glucose.json" || die "Can't add get-ns-glucose"
 openaps alias add monitor-pump "report invoke monitor/clock.json monitor/temp_basal.json monitor/pumphistory.json monitor/pumphistory-zoned.json monitor/clock-zoned.json monitor/iob.json monitor/meal.json monitor/reservoir.json monitor/battery.json monitor/status.json" || die "Can't add monitor-pump"
 openaps alias add ns-meal-carbs '! bash -c "curl -m 30 -s \"$NIGHTSCOUT_HOST/api/v1/treatments.json?find\[created_at\]\[\$gte\]=`date -d \"6 hours ago\" -Iminutes`&find\[carbs\]\[\$exists\]=true\" > monitor/carbhistory.json && oref0-meal monitor/pumphistory-zoned.json settings/profile.json monitor/clock-zoned.json monitor/carbhistory.json > monitor/meal.json; exit 0"'
 openaps alias add get-settings "report invoke settings/model.json settings/bg_targets.json settings/insulin_sensitivities.json settings/basal_profile.json settings/settings.json settings/carb_ratios.json settings/profile.json settings/pumphistory-24h.json settings/pumphistory-24h-zoned.json settings/autosens.json" || die "Can't add get-settings"
-#openaps alias add get-bg '! bash -c "( openaps monitor-cgm 2>/dev/null | tail -1 && cat monitor/cgm-glucose.json | json -c \"minAgo=(new Date()-new Date(this.display_time.replace(\\\"T\\\", \\\" \\\")))/60/1000; return minAgo < 10 && minAgo > -5 && this.glucose > 30\" | grep -q glucose && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json ) || ( openaps get-ns-glucose && grep -q glucose monitor/ns-glucose.json && mv monitor/ns-glucose.json monitor/glucose.json )"' || die "Can't add get-bg"
-openaps alias add get-bg '! bash -c "( openaps get-ns-glucose && cat monitor/ns-glucose.json | json -c \"minAgo=(new Date()-new Date(this.dateString))/60/1000; return minAgo < 10 && minAgo > -5 && this.glucose > 30\" | grep -q glucose && mv monitor/ns-glucose.json monitor/glucose.json ) || ( openaps monitor-cgm 2>/dev/null | tail -1 && grep -q glucose monitor/cgm-glucose.json && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json )"' || die "Can't add get-bg"
-openaps alias add gather '! bash -c "rm monitor/*; ( openaps get-bg | egrep \"reporting|Copied\" && echo -n R && openaps report invoke monitor/status.json 2>/dev/null >/dev/null && echo -n e && test $(cat monitor/status.json | json bolusing) == false && echo -n fr && openaps ns-meal-carbs && echo -n esh && ( (openaps monitor-pump || openaps monitor-pump) >/dev/null && echo ed ) || (echo; sleep 60; exit 1)) 2>/dev/null"' || die "Can't add gather"
+openaps alias add get-bg '! bash -c "( openaps monitor-cgm 2>/dev/null | tail -1 && cat monitor/cgm-glucose.json | json -c \"minAgo=(new Date()-new Date(this.display_time.replace(\\\"T\\\", \\\" \\\")))/60/1000; return minAgo < 10 && minAgo > -5 && this.glucose > 30\" | grep -q glucose && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json ) || ( openaps get-ns-glucose && grep -q glucose monitor/ns-glucose.json && mv monitor/ns-glucose.json monitor/glucose.json )"' || die "Can't add get-bg"
+#openaps alias add get-bg '! bash -c "( openaps get-ns-glucose && cat monitor/ns-glucose.json | json -c \"minAgo=(new Date()-new Date(this.dateString))/60/1000; return minAgo < 10 && minAgo > -5 && this.glucose > 30\" | grep -q glucose && mv monitor/ns-glucose.json monitor/glucose.json ) || ( openaps monitor-cgm 2>/dev/null | tail -1 && grep -q glucose monitor/cgm-glucose.json && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json )"' || die "Can't add get-bg"
+openaps alias add gather '! bash -c "rm monitor/*; ( openaps get-bg | egrep \"reporting|Copied\" && echo -n R && openaps report invoke monitor/status.json 2>/dev/null >/dev/null && echo -n e && test $(cat monitor/status.json | json bolusing) == false && echo -n fr && openaps ns-meal-carbs && echo -n esh && ( (openaps monitor-pump || openaps monitor-pump) >/dev/null && echo ed ) || (echo; sleep 10; exit 1)) 2>/dev/null"' || die "Can't add gather"
 openaps alias add wait-for-bg '! bash -c "cp monitor/glucose.json monitor/last-glucose.json; while(diff -q monitor/last-glucose.json monitor/glucose.json); do echo -n .; sleep 10; openaps get-bg >/dev/null; done"'
 
 # add aliases to enact and loop
