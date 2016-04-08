@@ -68,7 +68,7 @@ openaps device show 2>/dev/null > /tmp/openaps-devices
 grep -q pump.ini .gitignore 2>/dev/null || echo pump.ini >> .gitignore
 git add .gitignore
 #grep pump /tmp/openaps-devices || openaps device add pump medtronic $serial || die "Can't add pump"
-#grep pump /tmp/openaps-devices || openaps device add pump mmeowlink subg_rfspy $ttyport $serial || die "Can't add pump"
+grep pump /tmp/openaps-devices || openaps device add pump mmeowlink subg_rfspy $ttyport $serial || die "Can't add pump"
 #grep cgm /tmp/openaps-devices || openaps device add cgm dexcom || die "Can't add CGM"
 #git add cgm.ini
 grep share /tmp/openaps-devices || openaps device add cgm openxshareble || die "Can't add Share"
