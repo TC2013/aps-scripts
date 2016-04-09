@@ -1,0 +1,61 @@
+cd ~/src
+git clone -b wip/bewest/custom-gatt-profile https://github.com/bewest/Adafruit_Python_BluefruitLE.git
+cd Adafruit_Python_BluefruitLE
+sudo python setup.py develop
+
+cd ~/src
+git clone https://github.com/bewest/openxshareble.git
+cd openxshareble
+sudo python setup.py develop
+
+cd ~ /src 
+The steps below describe how to install BlueZ 5.33 on a Raspberry Pi running its Raspbian operating system. In a terminal on the Raspberry Pi run:
+
+sudo apt-get update
+sudo apt-get -y install libusb-dev libdbus-1-dev libglib2.0-dev libudev-dev libical-dev libreadline-dev
+wget http://www.kernel.org/pub/linux/bluetooth/bluez-5.37.tar.gz
+tar xvfz bluez-5.37.tar.gz
+cd bluez-5.37
+./configure --enable-experimental --disable-systemd
+
+Then:
+
+make
+sudo make install
+sudo cp ./src/bluetoothd /usr/local/bin/
+
+Finally you'll need to make sure the bluetoothd daemon runs at boot and is run with the --experimental flag to enable all the BLE APIs. To do this edit the /etc/rc.local file and add the following line before the exit 0 at the end:
+
+/usr/local/bin/bluetoothd --experimental &
+Comment out the other bluetoothd line using a # in front of the line
+
+sudo nano /etc/dbus-1/system.d/bluetooth.conf   
+Add the following:
+<!-- allow users of dialout group (chosen by bewest) to 
+       communicate with bluetoothd -->
+  <policy group="dialout">
+    <allow own="org.bluez"/>
+    <allow send_destination="org.bluez"/>
+    <allow send_interface="org.bluez.Agent1"/>
+    <allow send_interface="org.bluez.MediaEndpoint1"/>
+    <allow send_interface="org.bluez.MediaPlayer1"/>
+    <allow send_interface="org.bluez.ThermometerWatcher1"/>
+    <allow send_interface="org.bluez.AlertAgent1"/>
+    <allow send_interface="org.bluez.Profile1"/>
+    <allow send_interface="org.bluez.HeartRateWatcher1"/>
+    <allow send_interface="org.bluez.CyclingSpeedWatcher1"/>
+    <allow send_interface="org.bluez.GattCharacteristic1"/>
+    <allow send_interface="org.bluez.GattDescriptor1"/>
+    <allow send_interface="org.freedesktop.DBus.ObjectManager"/>
+    <allow send_interface="org.freedesktop.DBus.Properties"/>
+  </policy>
+
+Next:
+sudo apt-get install python-dbus
+
+Use (OpenAPS must be installed), from OpenAPS init dir:
+
+openaps vendor add openxshareble
+openaps device add share openxshareble  (substitute any name for ‘share’)
+openaps use share configure SM123456
+openaps use share -h
