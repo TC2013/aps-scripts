@@ -1,7 +1,14 @@
 #!/bin/bash
 
-# This script sets up an openaps environment to work with loop.sh,
-# by defining the required devices, reports, and aliases.
+############################################################################################
+# 99% of this is directly the work of Scott Leibrand, Dana Lewis, and Ben West - Thank you!!!
+# This script is meant mostly for an Intel Edison setup with radio connected over serial, such as the CC1111, ERF, or RileyLink
+# openxshareble must be install for the "Get-BG" alias to work appropriately.  Follow the openxshareble instructions in this repo
+# openxshareble currently requires a Dexcom G4 share receiver to connect and pull BGs via bluetooth.
+# This does allow the OpenAPS unit to operate in offline mode.
+# For Nightscout uploading to work and pulling BGs from NS should the unit fail to pull via bluetooth, you must have your Nightscout envirnment variables set.
+# Follow the OpenAPS docs for setting those variables correctly.
+#############################################################################################
 #
 # Released under MIT license. See the accompanying LICENSE.txt file for
 # full terms and conditions
@@ -21,7 +28,7 @@ die() {
 
 if [[ $# -lt 2 ]]; then
     #openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [Share serial #]
-    openaps device show pump 2>/dev/null >/dev/null || die "Usage: script.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING] [Dex SN] Ex: ./script.sh /home/edison/src/aps 123456 8 /dev/ttyMFD1 SM52087572 /"
+    openaps device show pump 2>/dev/null >/dev/null || die "Usage: script.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING] [Dex SN] Ex: ./script.sh /home/edison/src/aps 123456 8 /dev/ttyMFD1 SM52087572 "
 fi
 directory=`mkdir -p $1; cd $1; pwd`
 serial=$2
