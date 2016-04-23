@@ -1,6 +1,2 @@
-sudo nano /etc/rc.local  and add before exit
-
-( until ping -nq -c3 8.8.8.8; do
-   echo "Waiting for network..."
-done
-sntp -s time.nist.gov )&
+sudo nano /etc/rc.local  and add the line below before exit
+sleep 30 && sntp -s time.nist.gov &
