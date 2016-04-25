@@ -13,15 +13,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
--############################################################################################
--# 99% of this is directly the work of Scott Leibrand, Dana Lewis, and Ben West - Thank you!!!
--# This script is meant mostly for an Intel Edison setup with radio connected over serial, such as the CC1111, ERF, or RileyLink
--# openxshareble must be installed for the "Get-BG" alias to work appropriately.  Follow the openxshareble instructions in this repo
--# openxshareble currently requires a Dexcom G4 share receiver to connect and pull BGs via bluetooth.
--# This does allow the OpenAPS unit to operate in offline mode.
--# For Nightscout uploading to work and pulling BGs from NS should the unit fail to pull via bluetooth, you must have your Nightscout envirnment variables set.
--# Follow the OpenAPS docs for setting those variables correctly.
--#############################################################################################
+############################################################################################
+# 99% of this is directly the work of Scott Leibrand, Dana Lewis, and Ben West - Thank you!!!
+# This script is meant mostly for an Intel Edison setup with radio connected over serial, such as the CC1111, ERF, or RileyLink
+# openxshareble must be installed for the "Get-BG" alias to work appropriately.  Follow the openxshareble instructions in this repo
+# openxshareble currently requires a Dexcom G4 share receiver to connect and pull BGs via bluetooth.
+# This does allow the OpenAPS unit to operate in offline mode.
+# For Nightscout uploading to work and pulling BGs from NS should the unit fail to pull via bluetooth, you must have your Nightscout envirnment variables set.
+# Follow the OpenAPS docs for setting those variables correctly.
+#############################################################################################
 die() {
   echo "$@"
   exit 1
