@@ -13,15 +13,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-
+-############################################################################################
+-# 99% of this is directly the work of Scott Leibrand, Dana Lewis, and Ben West - Thank you!!!
+-# This script is meant mostly for an Intel Edison setup with radio connected over serial, such as the CC1111, ERF, or RileyLink
+-# openxshareble must be installed for the "Get-BG" alias to work appropriately.  Follow the openxshareble instructions in this repo
+-# openxshareble currently requires a Dexcom G4 share receiver to connect and pull BGs via bluetooth.
+-# This does allow the OpenAPS unit to operate in offline mode.
+-# For Nightscout uploading to work and pulling BGs from NS should the unit fail to pull via bluetooth, you must have your Nightscout envirnment variables set.
+-# Follow the OpenAPS docs for setting those variables correctly.
+-#############################################################################################
 die() {
   echo "$@"
   exit 1
 }
 
 if [[ $# -lt 2 ]]; then
-    #openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [Share serial #]
-    openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING]"
+openaps device show pump 2>/dev/null >/dev/null || die "Usage: script.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING] [Dex SN] Ex: ./script.sh /home/edison/src/aps 123456 8 /dev/ttyMFD1 SM52087572
 fi
 directory=`mkdir -p $1; cd $1; pwd`
 serial=$2
@@ -38,7 +45,7 @@ fi
 if [[ $# -gt 3 ]]; then
     ttyport=$4
 fi
-echo -n Setting up oref0 in $directory for pump $serial with max_iob $max_iob and TTY $ttyport
+echo -n Setting up oref0 in $directory for pump $serial with max_iob $max_iob and TTY $ttyport and Share $share_serial
 echo
 
 read -p "Continue? " -n 1 -r
@@ -160,11 +167,9 @@ openaps alias add wait-for-bg '! bash -c "cp monitor/glucose.json monitor/last-g
 
 # add aliases to enact and loop
 openaps alias add enact '! bash -c "rm enact/suggested.json; openaps invoke enact/suggested.json && if (cat enact/suggested.json && grep -q duration enact/suggested.json); then ( rm enact/enacted.json; openaps invoke enact/enacted.json ; grep -q duration enact/enacted.json || openaps invoke enact/enacted.json ) 2>&1 | egrep -v \"^  |subg_rfspy|handler\" && cat enact/enacted.json | json -0 | tee enact/enacted.json; else echo No action required; fi"' || die "Can't add enact"
-#openaps alias add wait-loop '! bash -c "openaps preflight && openaps gather && openaps enact && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && openaps upload && (openaps get-settings || openaps get-settings) 2>/dev/null >/dev/null && openaps wait-for-bg && openaps enact && openaps upload-ns-status >/dev/null"' || die "Can't add wait-loop"
 openaps alias add wait-loop '! bash -c "openaps preflight && openaps get-bg && openaps enact && openaps gather && openaps enact && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && openaps upload && (openaps get-settings || openaps get-settings) 2>/dev/null >/dev/null && openaps invoke settings/autosens.json && openaps wait-for-bg && openaps enact && openaps upload-ns-status >/dev/null"' || die "Can't add wait-loop"
-openaps alias add loop '! bash -c "openaps preflight && openaps gather && openaps get-settings 2>/dev/null >/dev/null && openaps enact && openaps upload && openaps invoke settings/autosens.json"' || die "Can't add loop"
+openaps alias add loop '! bash -c "openaps preflight && openaps gather && openaps get-settings 2>/dev/null >/dev/null && openaps enact && openaps upload && openaps invoke settings/autosens.json"' || die "Can't add loop"openaps alias add retry-loop '! bash -c "openaps wait-loop || openaps loop"' || die "Can't add retry-loop"
 openaps alias add retry-loop '! bash -c "openaps wait-loop || openaps loop"' || die "Can't add retry-loop"
-
 # add aliases to upload results
 openaps alias add pebble '! bash -c "grep -q iob monitor/iob.json && grep -q absolute enact/suggested.json && openaps report invoke upload/pebble.json"' || die "Can't add pebble"
 openaps alias add prep-pumphistory-entries '! bash -c "cat monitor/pumphistory-zoned.json | json -e \"this.dateString = this.timestamp\" | json -e \"this.medtronic = this._type\" | json -e \"this.type = \\\"medtronic\\\"\" | json -e \"this.date = new Date(Date.parse(this.timestamp)).getTime( )\" > upload/pumphistory-entries.json"' || die "Can't add prep-pumphistory-entries"
