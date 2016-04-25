@@ -184,7 +184,8 @@ openaps alias add format-latest-nightscout-treatments '! bash -c "nightscout cul
 openaps alias add upload-recent-treatments '! bash -c "openaps format-latest-nightscout-treatments && test $(json -f upload/latest-treatments.json -a created_at eventType | wc -l ) -gt 0 && (ns-upload $NIGHTSCOUT_HOST $API_SECRET treatments.json upload/latest-treatments.json ) || echo \"No recent treatments to upload\""' || die "Can't add upload-recent-treatments"
 openaps alias add format-ns-status '! bash -c "ns-status monitor/clock-zoned.json monitor/iob.json enact/suggested.json enact/enacted.json monitor/battery.json monitor/reservoir.json monitor/status.json > upload/ns-status.json"' || die "Can't add format-ns-status"
 openaps alias add upload-ns-status '! bash -c "grep -q iob monitor/iob.json && grep -q absolute enact/suggested.json && openaps format-ns-status && grep -q iob upload/ns-status.json && ns-upload $NIGHTSCOUT_HOST $API_SECRET devicestatus.json upload/ns-status.json"' || die "Can't add upload-ns-status"
-openaps alias add upload '! bash -c "echo -n Upload && ( openaps upload-ns-status; openaps report invoke enact/suggested.json 2>/dev/null; openaps pebble; openaps upload-pumphistory-entries; openaps upload-recent-treatments ) 2>/dev/null >/dev/null && echo ed"' || die "Can't add upload"
+openaps alias add upload '! bash -c "echo -n Upload && ( openaps upload-ns-status; openaps report invoke enact/suggested.json 2>/dev/null; openaps upload-pumphistory-entries; openaps upload-recent-treatments ) 2>/dev/null >/dev/null && echo ed"' || die "Can't add upload"
+#openaps alias add upload '! bash -c "echo -n Upload && ( openaps upload-ns-status; openaps report invoke enact/suggested.json 2>/dev/null; openaps pebble; openaps upload-pumphistory-entries; openaps upload-recent-treatments ) 2>/dev/null >/dev/null && echo ed"' || die "Can't add upload"
 
 read -p "Schedule openaps retry-loop in cron? " -n 1 -r
 echo
