@@ -28,7 +28,7 @@ die() {
 }
 
 if [[ $# -lt 2 ]]; then
-openaps device show pump 2>/dev/null >/dev/null || die "Usage: script.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING] [Dex SN] Ex: ./script.sh /home/edison/src/aps 123456 8 /dev/ttyMFD1 SM52087572
+openaps device show pump 2>/dev/null >/dev/null || die "Usage: script.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING] [Dex SN] Ex: ./script.sh /home/edison/src/aps 123456 8 /dev/ttyMFD1 SM52087572"
 fi
 directory=`mkdir -p $1; cd $1; pwd`
 serial=$2
@@ -152,8 +152,11 @@ openaps alias show 2>/dev/null > /tmp/openaps-aliases
 openaps alias add invoke "report invoke" || die "Can't add invoke"
 #openaps alias add mmtune "! bash -c \"cd ~/src/minimed_rf/ && ruby -I lib bin/mmtune $ttyport $serial | egrep -v 'rssi:|OK|Ver|Open'\""
 openaps alias add mmtune "! bash -c \"cd $directory && openaps use pump mmtune >/dev/null""
-#openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo -n \"OK, temp duration check \" && cat monitor/temp_basal.json | json -c \"this.duration < 25\" | grep -q duration && echo OK || ( echo FAIL; sleep 120; exit 1 )"' || die "Can't add preflight"
-openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo OK || ( echo FAIL; sleep 10; exit 1 )"' || die "Can't add preflight"
+
+openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo -n \"OK, temp duration check \" && cat monitor/temp_basal.json | json -c \"this.duration < 25\" | grep -q duration && echo OK || ( echo FAIL; sleep 10; exit 1 )"' || die "Can't add preflight"
+
+#openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo OK || ( echo FAIL; sleep 10; exit 1 )"' || die "Can't add preflight"
+
 openaps alias add monitor-cgm "report invoke monitor/cgm-glucose.json" || die "Can't add monitor-cgm"
 #openaps alias add monitor-share "report invoke monitor/share-glucose.json" || die "Can't add monitor-share"
 openaps alias add get-ns-glucose "report invoke monitor/ns-glucose.json" || die "Can't add get-ns-glucose"
