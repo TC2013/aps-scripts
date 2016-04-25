@@ -1,7 +1,14 @@
 #!/bin/bash
 
-# This script sets up an openaps environment to work with loop.sh,
-# by defining the required devices, reports, and aliases.
+############################################################################################
+# 99% of this is directly the work of Scott Leibrand, Dana Lewis, and Ben West - Thank you!!!
+# This script is meant mostly for an Intel Edison setup with radio connected over serial, such as the CC1111, ERF, or RileyLink
+# openxshareble must be install for the "Get-BG" alias to work appropriately.  Follow the openxshareble instructions in this repo
+# openxshareble currently requires a Dexcom G4 share receiver to connect and pull BGs via bluetooth.
+# This does allow the OpenAPS unit to operate in offline mode.
+# For Nightscout uploading to work and pulling BGs from NS should the unit fail to pull via bluetooth, you must have your Nightscout envirnment variables set.
+# Follow the OpenAPS docs for setting those variables correctly.
+#############################################################################################
 #
 # Released under MIT license. See the accompanying LICENSE.txt file for
 # full terms and conditions
@@ -13,22 +20,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-############################################################################################
-# 99% of this is directly the work of Scott Leibrand, Dana Lewis, and Ben West - Thank you!!!
-# This script is meant mostly for an Intel Edison setup with radio connected over serial, such as the CC1111, ERF, or RileyLink
-# openxshareble must be installed for the "Get-BG" alias to work appropriately.  Follow the openxshareble instructions in this repo
-# openxshareble currently requires a Dexcom G4 share receiver to connect and pull BGs via bluetooth.
-# This does allow the OpenAPS unit to operate in offline mode.
-# For Nightscout uploading to work and pulling BGs from NS should the unit fail to pull via bluetooth, you must have your Nightscout envirnment variables set.
-# Follow the OpenAPS docs for setting those variables correctly.
-#############################################################################################
+
 die() {
   echo "$@"
   exit 1
 }
 
 if [[ $# -lt 2 ]]; then
-openaps device show pump 2>/dev/null >/dev/null || die "Usage: script.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING] [Dex SN] Ex: ./script.sh /home/edison/src/aps 123456 8 /dev/ttyMFD1 SM52087572"
+    #openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [Share serial #]
+    openaps device show pump 2>/dev/null >/dev/null || die "Usage: script.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING] [Dex SN] Ex: ./script.sh /home/edison/src/aps 123456 8 /dev/ttyMFD1 SM52087572 "
 fi
 directory=`mkdir -p $1; cd $1; pwd`
 serial=$2
@@ -45,7 +45,7 @@ fi
 if [[ $# -gt 3 ]]; then
     ttyport=$4
 fi
-echo -n Setting up oref0 in $directory for pump $serial with max_iob $max_iob and TTY $ttyport and Share $share_serial
+echo -n Setting up oref0 in $directory for pump $serial with max_iob $max_iob and TTY $ttyport
 echo
 
 read -p "Continue? " -n 1 -r
@@ -78,7 +78,7 @@ git add .gitignore
 grep pump /tmp/openaps-devices || openaps device add pump mmeowlink subg_rfspy $ttyport $serial || die "Can't add pump"
 #grep cgm /tmp/openaps-devices || openaps device add cgm dexcom || die "Can't add CGM"
 #git add cgm.ini
-grep cgm /tmp/openaps-devices || openaps device add cgm openxshareble || die "Can't add cgm"
+grep cgm /tmp/openaps-devices || openaps device add cgm openxshareble || die "Can't add Share"
 openaps use cgm configure --serial $share_serial
 git add cgm.ini
 #openaps device remove ns-glucose
@@ -133,7 +133,7 @@ grep settings/insulin_sensitivities.json /tmp/openaps-reports || openaps report 
 grep settings/carb_ratios.json /tmp/openaps-reports || openaps report add settings/carb_ratios.json JSON pump read_carb_ratios || die "Can't add carb_ratios.json"
 grep settings/basal_profile.json /tmp/openaps-reports || openaps report add settings/basal_profile.json JSON pump read_selected_basal_profile || die "Can't add basal_profile.json"
 grep settings/settings.json /tmp/openaps-reports || openaps report add settings/settings.json JSON pump read_settings || die "Can't add settings.json"
-grep settings/profile.json /tmp/openaps-reports || openaps report add settings/profile.json text get-profile shell settings/settings.json settings/bg_targets.json settings/insulin_sensitivities.json settings/basal_profile.json max_iob.json settings/carb_ratios.json settings/temptargets.json || die "Can't add profile.json"
+grep settings/profile.json /tmp/openaps-reports || openaps report add settings/profile.json text get-profile shell settings/settings.json settings/bg_targets.json settings/insulin_sensitivities.json settings/basal_profile.json max_iob.json settings/carb_ratios.json || die "Can't add profile.json"
 
 # add suggest and enact reports
 ls enact 2>/dev/null >/dev/null || mkdir enact || die "Can't mkdir enact"
@@ -151,28 +151,30 @@ openaps alias show 2>/dev/null > /tmp/openaps-aliases
 # add aliases to get data
 openaps alias add invoke "report invoke" || die "Can't add invoke"
 #openaps alias add mmtune "! bash -c \"cd ~/src/minimed_rf/ && ruby -I lib bin/mmtune $ttyport $serial | egrep -v 'rssi:|OK|Ver|Open'\""
-openaps alias add mmtune "! bash -c \"cd $directory && openaps use pump mmtune >/dev/null""
-
-openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo -n \"OK, temp duration check \" && cat monitor/temp_basal.json | json -c \"this.duration < 25\" | grep -q duration && echo OK || ( echo FAIL; sleep 10; exit 1 )"' || die "Can't add preflight"
-
-#openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo OK || ( echo FAIL; sleep 10; exit 1 )"' || die "Can't add preflight"
-
+openaps alias add mmtune "! bash -c \"cd $directory && openaps use pump mmtune >/dev/null\""
+#openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo -n \"OK, temp duration check \" && cat monitor/temp_basal.json | json -c \"this.duration < 25\" | grep -q duration && echo OK || ( echo FAIL; sleep 120; exit 1 )"' || die "Can't add preflight"
+openaps alias add preflight '! bash -c "echo -n \"mmtune: \" && openaps mmtune && echo -n \"PREFLIGHT \" && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && echo "OK" $(date) || ( echo "FAIL" $(date); sleep 10; exit 1 )"' || die "Can't add preflight"
 openaps alias add monitor-cgm "report invoke monitor/cgm-glucose.json" || die "Can't add monitor-cgm"
 #openaps alias add monitor-share "report invoke monitor/share-glucose.json" || die "Can't add monitor-share"
 openaps alias add get-ns-glucose "report invoke monitor/ns-glucose.json" || die "Can't add get-ns-glucose"
 openaps alias add monitor-pump "report invoke monitor/clock.json monitor/temp_basal.json monitor/pumphistory.json monitor/pumphistory-zoned.json monitor/clock-zoned.json monitor/iob.json monitor/meal.json monitor/reservoir.json monitor/battery.json monitor/status.json" || die "Can't add monitor-pump"
-openaps alias add ns-temptargets '! bash -c "curl -m 30 -s \"$NIGHTSCOUT_HOST/api/v1/treatments.json?find\[created_at\]\[\$gte\]=`date -d \"6 hours ago\" -Iminutes`&find\[eventType\]\[\$regex\]=Target\" > settings/temptargets.json; exit 0 "' || die "Can't add ns-temptargets"
 openaps alias add ns-meal-carbs '! bash -c "curl -m 30 -s \"$NIGHTSCOUT_HOST/api/v1/treatments.json?find\[created_at\]\[\$gte\]=`date -d \"6 hours ago\" -Iminutes`&find\[carbs\]\[\$exists\]=true\" > monitor/carbhistory.json && oref0-meal monitor/pumphistory-zoned.json settings/profile.json monitor/clock-zoned.json monitor/carbhistory.json > monitor/meal.json; exit 0"' || die "Can't add ns-meal-carbs"
+openaps alias add ns-temptargets '! bash -c "curl -m 30 -s \"$NIGHTSCOUT_HOST/api/v1/treatments.json?find\[created_at\]\[\$gte\]=`date -d \"6 hours ago\" -Iminutes`&find\[eventType\]\[\$regex\]=Target\" > settings/temptargets.json; exit 0 "' || die "Can't add ns-temptargets"
 openaps alias add get-settings "report invoke settings/model.json settings/bg_targets.json settings/insulin_sensitivities.json settings/basal_profile.json settings/settings.json settings/carb_ratios.json settings/profile.json settings/pumphistory-24h.json settings/pumphistory-24h-zoned.json" || die "Can't add get-settings"
+#openaps alias add get-bg '! bash -c "( openaps monitor-cgm 2>/dev/null | tail -1 && cat monitor/cgm-glucose.json | json -c \"minAgo=(new Date()-new Date(this.display_time.replace(\\\"T\\\", \\\" \\\")))/60/1000; return minAgo < 10 && minAgo > -5 && this.glucose > 30\" | grep -q glucose && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json )"' || die "Can't add get-bg"
 openaps alias add get-bg '! bash -c "( openaps monitor-cgm 2>/dev/null | tail -1 && grep -q glucose monitor/cgm-glucose.json && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json ) || ( openaps get-ns-glucose && grep -q glucose monitor/ns-glucose.json && mv monitor/ns-glucose.json monitor/glucose.json )"' || die "Can't add get-bg"
-openaps alias add gather '! bash -c "rm monitor/*; ( openaps get-bg | egrep \"reporting|Copied\" && echo -n R && openaps report invoke monitor/status.json 2>/dev/null >/dev/null && echo -n e && test $(cat monitor/status.json | json bolusing) == false && echo -n fr && openaps ns-meal-carbs && echo -n e && openaps ns-temptargets && echo -n sh && ( (openaps monitor-pump || openaps monitor-pump) >/dev/null && echo ed ) || (echo; sleep 60; exit 1)) 2>/dev/null"' || die "Can't add gather"
+#openaps alias add get-bg '! bash -c "( openaps monitor-cgm 2>/dev/null | tail -1 && cat monitor/cgm-glucose.json | json -c \"minAgo=(new Date()-new Date(this.display_time.replace(\\\"T\\\", \\\" \\\")))/60/1000; return minAgo < 10 && minAgo > -5 && this.glucose > 30\" | grep -q glucose && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json ) || ( openaps get-ns-glucose && grep -q glucose monitor/ns-glucose.json && mv monitor/ns-glucose.json monitor/glucose.json )"' || die "Can't add get-bg"
+#openaps alias add get-bg '! bash -c "( openaps get-ns-glucose && cat monitor/ns-glucose.json | json -c \"minAgo=(new Date()-new Date(this.dateString))/60/1000; return minAgo < 10 && minAgo > -5 && this.glucose > 30\" | grep -q glucose && mv monitor/ns-glucose.json monitor/glucose.json ) || ( openaps monitor-cgm 2>/dev/null | tail -1 && grep -q glucose monitor/cgm-glucose.json && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json )"' || die "Can't add get-bg"
+#openaps alias add get-bg '! bash -c "( openaps monitor-cgm 2>/dev/null | tail -1 && grep -q glucose monitor/cgm-glucose.json && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json "' || die "Can't add get-bg"
+openaps alias add gather '! bash -c "rm monitor/*; ( openaps get-bg | egrep \"reporting|Copied\" && echo -n R && openaps report invoke monitor/status.json 2>/dev/null >/dev/null && echo -n e && test $(cat monitor/status.json | json bolusing) == false && echo -n fr && openaps ns-meal-carbs && echo -n e && openaps ns-temptargets && echo -n sh && ( (openaps monitor-pump || openaps monitor-pump) >/dev/null && echo ed ) || (echo; sleep 10; exit 1)) 2>/dev/null"' || die "Can't add gather"
 openaps alias add wait-for-bg '! bash -c "cp monitor/glucose.json monitor/last-glucose.json; while(diff -q monitor/last-glucose.json monitor/glucose.json); do echo -n .; sleep 10; openaps get-bg >/dev/null; done"'
-
 # add aliases to enact and loop
 openaps alias add enact '! bash -c "rm enact/suggested.json; openaps invoke enact/suggested.json && if (cat enact/suggested.json && grep -q duration enact/suggested.json); then ( rm enact/enacted.json; openaps invoke enact/enacted.json ; grep -q duration enact/enacted.json || openaps invoke enact/enacted.json ) 2>&1 | egrep -v \"^  |subg_rfspy|handler\" && cat enact/enacted.json | json -0 | tee enact/enacted.json; else echo No action required; fi"' || die "Can't add enact"
+#openaps alias add wait-loop '! bash -c "openaps preflight && openaps gather && openaps enact && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && openaps upload && (openaps get-settings || openaps get-settings) 2>/dev/null >/dev/null && openaps wait-for-bg && openaps enact && openaps upload-ns-status >/dev/null"' || die "Can't add wait-loop"
 openaps alias add wait-loop '! bash -c "openaps preflight && openaps get-bg && openaps enact && openaps gather && openaps enact && openaps report invoke monitor/temp_basal.json 2>/dev/null >/dev/null && openaps upload && (openaps get-settings || openaps get-settings) 2>/dev/null >/dev/null && openaps invoke settings/autosens.json && openaps wait-for-bg && openaps enact && openaps upload-ns-status >/dev/null"' || die "Can't add wait-loop"
-openaps alias add loop '! bash -c "openaps preflight && openaps gather && openaps get-settings 2>/dev/null >/dev/null && openaps enact && openaps upload && openaps invoke settings/autosens.json"' || die "Can't add loop"openaps alias add retry-loop '! bash -c "openaps wait-loop || openaps loop"' || die "Can't add retry-loop"
+openaps alias add loop '! bash -c "openaps preflight && openaps gather && openaps get-settings 2>/dev/null >/dev/null && openaps enact && openaps upload && openaps invoke settings/autosens.json"' || die "Can't add loop"
 openaps alias add retry-loop '! bash -c "openaps wait-loop || openaps loop"' || die "Can't add retry-loop"
+
 # add aliases to upload results
 openaps alias add pebble '! bash -c "grep -q iob monitor/iob.json && grep -q absolute enact/suggested.json && openaps report invoke upload/pebble.json"' || die "Can't add pebble"
 openaps alias add prep-pumphistory-entries '! bash -c "cat monitor/pumphistory-zoned.json | json -e \"this.dateString = this.timestamp\" | json -e \"this.medtronic = this._type\" | json -e \"this.type = \\\"medtronic\\\"\" | json -e \"this.date = new Date(Date.parse(this.timestamp)).getTime( )\" > upload/pumphistory-entries.json"' || die "Can't add prep-pumphistory-entries"
