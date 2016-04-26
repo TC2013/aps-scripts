@@ -66,5 +66,11 @@ openaps device add share openxshareble  (substitute any name for ‘share’)
 openaps use share configure SM123456
 openaps use share -h
 
+To pair the receiver, open setttings, share, forget device (if previously paired), then turn sharing back on so that it can be paired with the Edison
+On the Edison, in your openaps init directory, type    openaps use share iter_glucose 1 
+The device should successfully pair, but may or may not pull the reading.  Subsequent attempts to pulll readings should now succeeed.
+Readings run manually also print a lot of text before the actual readings appear.
+
 ***Note: currently this command fails:    openaps use pump iter_glucose_hours #    
 Instead use    openaps use pump iter_glucose #      (this pulls any number of previous readings successfully, e.g., 300)
+Remember to create your reports using the number of records (iter_glucose #).
