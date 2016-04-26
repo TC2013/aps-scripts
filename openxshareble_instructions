@@ -71,6 +71,17 @@ On the Edison, in your openaps init directory, type    openaps use share iter_gl
 The device should successfully pair, but may or may not pull the reading.  Subsequent attempts to pulll readings should now succeeed.
 Readings run manually also print a lot of text before the actual readings appear.
 
-***Note: currently this command fails:    openaps use pump iter_glucose_hours #    
-Instead use    openaps use pump iter_glucose #      (this pulls any number of previous readings successfully, e.g., 300)
+***Note: currently this command fails:    openaps use cgm iter_glucose_hours #    
+Instead use    openaps use cgm iter_glucose #      (this pulls any number of previous readings successfully, e.g., 300)
 Remember to create your reports using the number of records (iter_glucose #).
+
+The following are examples to set up a share receiver within the openaps init directory.  The Share receiver is named 'cgm' below
+openaps device add cgm openxshareble 
+openaps use cgm configure --serial $share_serial
+git add cgm.ini
+
+openaps report add monitor/cgm-glucose.json JSON cgm iter_glucose 300
+openaps report add monitor/ns-glucose.json text ns-glucose shell
+
+openaps alias add get-bg '! bash -c "( openaps monitor-cgm 2>/dev/null | tail -1 && grep -q glucose monitor/cgm-glucose.json && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json ) || ( openaps get-ns-glucose && grep -q glucose monitor/ns-glucose.json && mv monitor/ns-glucose.json monitor/glucose.json )"'
+
