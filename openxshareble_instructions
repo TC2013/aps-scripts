@@ -1,4 +1,4 @@
-Instructions for to use Dexcom G4 Share receiver over bluetooth with OpenAPS 
+Instructions for using Dexcom G4 Share receiver over bluetooth with OpenAPS 
 I have only tested using an Edison running Ubilinux
 
 cd ~/src
