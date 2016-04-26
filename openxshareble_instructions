@@ -82,7 +82,7 @@ git add cgm.ini
 
 openaps report add monitor/cgm-glucose.json JSON cgm iter_glucose 300
 openaps report add monitor/ns-glucose.json text ns-glucose shell
-
+openaps alias add monitor-cgm "report invoke monitor/cgm-glucose.json"
 openaps alias add get-bg '! bash -c "( openaps monitor-cgm 2>/dev/null | tail -1 && grep -q glucose monitor/cgm-glucose.json && rsync -rtu monitor/cgm-glucose.json monitor/glucose.json ) || ( openaps get-ns-glucose && cat monitor/ns-glucose.json | json -c \"minAgo=(new Date()-new Date(this.dateString))/60/1000; return minAgo < 10 && minAgo > -5 && this.glucose > 30\" | grep -q glucose && mv monitor/ns-glucose.json monitor/glucose.json )"'
 
 
