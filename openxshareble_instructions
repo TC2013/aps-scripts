@@ -9,7 +9,7 @@ cd openxshareble
 sudo python setup.py develop
 
 cd ~ /src 
-The steps below describe how to install BlueZ 5.33 on a Raspberry Pi running its Raspbian operating system. In a terminal on the Raspberry Pi run:
+The steps below describe how to install BlueZ 5.37 on a Raspberry Pi running its Raspbian operating system. In a terminal on the Raspberry Pi run:
 
 sudo apt-get update
 sudo apt-get -y install libusb-dev libdbus-1-dev libglib2.0-dev libudev-dev libical-dev libreadline-dev
@@ -24,11 +24,14 @@ make
 sudo make install
 sudo cp ./src/bluetoothd /usr/local/bin/
 
-Finally you'll need to make sure the bluetoothd daemon runs at boot and is run with the --experimental flag to enable all the BLE APIs. To do this edit the /etc/rc.local file and add the following line before the exit 0 at the end:
+Finally you'll need to make sure the bluetoothd daemon runs at boot and is run with the --experimental flag to enable all the BLE APIs.
 
+To do this edit the /etc/rc.local file
+sudo nano /etc/rc.local  (add the following line before the exit 0 at the end)
 /usr/local/bin/bluetoothd --experimental &
 Comment out the other bluetoothd line using a # in front of the line
 
+Next, you'll need to give permissions to users in the dialout group to run bluez stuff.
 sudo nano /etc/dbus-1/system.d/bluetooth.conf   
 Add the following:
 <!-- allow users of dialout group (chosen by bewest) to 
@@ -59,3 +62,6 @@ openaps vendor add openxshareble
 openaps device add share openxshareble  (substitute any name for ‘share’)
 openaps use share configure SM123456
 openaps use share -h
+
+***Note: currently this command fails:    openaps use pump iter_glucose_hours #    
+Instead use    openaps use pump iter_glucose #      (this pulls any number of previous readings successfully, e.g., 300)
