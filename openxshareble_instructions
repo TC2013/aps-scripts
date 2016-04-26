@@ -1,4 +1,5 @@
-Instructions for to use Dexcom G4 Share receiver over bluetooth with OpenAPS
+Instructions for to use Dexcom G4 Share receiver over bluetooth with OpenAPS 
+I have only tested using an Edison running Ubilinux
 
 cd ~/src
 git clone -b wip/bewest/custom-gatt-profile https://github.com/bewest/Adafruit_Python_BluefruitLE.git
