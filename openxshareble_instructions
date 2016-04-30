@@ -63,7 +63,7 @@ Use (OpenAPS must be installed), from OpenAPS init dir:
 
 openaps vendor add openxshareble
 openaps device add share openxshareble  (substitute any name for ‘share’)
-openaps use share configure SM123456
+openaps use share configure --serial SM123456
 openaps use share -h
 
 To pair the receiver, open setttings, share, forget device (if previously paired), then turn sharing back on so that it can be paired with the Edison
