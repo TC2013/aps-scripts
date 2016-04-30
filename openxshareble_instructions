@@ -34,6 +34,19 @@ sudo nano /etc/rc.local  (add the following line before the exit 0 at the end)
 /usr/local/bin/bluetoothd --experimental &
 Comment out the other bluetoothd line using a # in front of the line
 
+Alternately/additionally, you may need to edit /etc/init.d/bluetooth if your system uses that (for example, running Ubilinux Jessie on Edison).
+sudo nano /etc/init.d/bluetooth
+
+Comment out the line that reads `DAEMON=/usr/sbin/bluetoothd` and replace it with:
+DAEMON=/usr/local/bin/bluetoothd
+
+Comment out the line that reads `#SSD_OPTIONS="--oknodo --quiet --exec $DAEMON -- $NOPLUGIN_OPTION"` and replace it with:
+SSD_OPTIONS="--oknodo --quiet --exec $DAEMON -- --experimental $NOPLUGIN_OPTION"
+
+Reboot and confirm the correct version of bluetoothd is running:
+ps aux | grep bluetoothd
+Output should contain `/usr/local/bin/bluetoothd --experimental`, not `/usr/sbin/bluetoothd`.
+
 Next, you'll need to give permissions to users in the dialout group to run bluez stuff.
 sudo nano /etc/dbus-1/system.d/bluetooth.conf   
 Add the following:
