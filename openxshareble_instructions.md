@@ -16,6 +16,7 @@ sudo python setup.py develop
 ```
 
 `cd ~ /src`
+
 The steps below describe how to install BlueZ 5.37 on a Raspberry Pi running its Raspbian operating system. In a terminal on the Raspberry Pi run:
 
 ```
@@ -37,26 +38,36 @@ sudo cp ./src/bluetoothd /usr/local/bin/
 
 Finally you'll need to make sure the bluetoothd daemon runs at boot and is run with the --experimental flag to enable all the BLE APIs.
 
-To do this edit the /etc/rc.local file
+To do this edit the /etc/rc.local file:
+
 `sudo nano /etc/rc.local`  (add the following line before the exit 0 at the end):
+
 `/usr/local/bin/bluetoothd --experimental &`
+
 Comment out the other bluetoothd line using a # in front of the line
 
 Alternately/additionally, you may need to edit /etc/init.d/bluetooth if your system uses that (for example, running Ubilinux Jessie on Edison).
+
 `sudo nano /etc/init.d/bluetooth`
 
 Comment out the line that reads `DAEMON=/usr/sbin/bluetoothd` and replace it with:
+
 `DAEMON=/usr/local/bin/bluetoothd`
 
 Comment out the line that reads `#SSD_OPTIONS="--oknodo --quiet --exec $DAEMON -- $NOPLUGIN_OPTION"` and replace it with:
+
 `SSD_OPTIONS="--oknodo --quiet --exec $DAEMON -- --experimental $NOPLUGIN_OPTION"`
 
 Reboot and confirm the correct version of bluetoothd is running:
+
 `ps aux | grep bluetoothd`
+
 Output should contain `/usr/local/bin/bluetoothd --experimental`, not `/usr/sbin/bluetoothd`.
 
 Next, you'll need to give permissions to users in the dialout group to run bluez stuff.
+
 `sudo nano /etc/dbus-1/system.d/bluetooth.conf`
+
 Add the following:
 ```
 <!-- allow users of dialout group (chosen by bewest) to 
@@ -80,13 +91,17 @@ Add the following:
 ```
 
 Next:
+
 `sudo apt-get install python-dbus`
 
 Use (OpenAPS must be installed), from OpenAPS init dir:
 
 `openaps vendor add openxshareble`
+
 `openaps device add share openxshareble`  (substitute any name for ‘share’)
+
 `openaps use share configure --serial SM123456` (substitute the SM# off the back of your receiver)
+
 `openaps use share -h`
 
 To pair the receiver, open setttings, share, forget device (if previously paired), then turn sharing back on so that it can be paired with the Edison
