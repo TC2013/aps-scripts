@@ -45,6 +45,9 @@ To do this edit the /etc/rc.local file:
 `/usr/local/bin/bluetoothd --experimental &`
 
 Comment out the other bluetoothd line using a # in front of the line
+If you are running Jubilinux, also add this line to /etc/rc.local
+`bluetooth_rfkill_event >/dev/null 2>&1 &`
+You can add it right after the other line you added, but it must be before the `exit 0` line.
 
 Alternately/additionally, you may need to edit /etc/init.d/bluetooth if your system uses that (for example, running Ubilinux Jessie on Edison).
 
